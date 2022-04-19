@@ -12,7 +12,7 @@ from model import ActionType, CoordinatorModel
 from roast import verify
 from transport import send_obj, recv_obj
 
-import ec
+import fastec
 
 @dataclass(order=True)
 class PriorityAction:
@@ -100,11 +100,11 @@ if __name__ == '__main__':
     # key generation is not the focus of the RoAST protocol, we will
     # keep the implementation simple by having the coordinator
     # act as a centralized dealer.
-    sk = 1 + secrets.randbelow(ec.n - 1)
+    sk = 1 + secrets.randbelow(fastec.n - 1)
     i_to_sk = split_secret(sk, t, n)
 
-    X = ec.point_mul(ec.G, sk)
-    i_to_X = {i: ec.point_mul(ec.G, sk_i) for i, sk_i in i_to_sk.items()}
+    X = sk * fastec.G
+    i_to_X = {i: sk_i * fastec.G for i, sk_i in i_to_sk.items()}
 
     model = CoordinatorModel(X, i_to_X, t, n, msg)
     actions = PriorityQueue()

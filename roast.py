@@ -1,22 +1,26 @@
 from collections import namedtuple
 
+import hashlib
 import secrets
 
-from ec import (
-    G, n,
-    point_add, point_mul,
+from fastec import (
+    G, n, infinity,
+    Point, point_add, point_mul,
     bytes_from_point, int_from_bytes,
-    tagged_hash
 )
 
 from shamir import lagrange
 
-infinity = None
+# This implementation can be sped up by storing the midstate after hashing
+# tag_hash instead of rehashing it all the time.
+def tagged_hash(tag: str, msg: bytes) -> bytes:
+    tag_hash = hashlib.sha256(tag.encode()).digest()
+    return hashlib.sha256(tag_hash + tag_hash + msg).digest()
 
 def H(tag, *items):
     buf = bytearray()
     for item in items:
-        if type(item) is tuple:
+        if type(item) is Point:
             buf.extend(bytes_from_point(item))
         else:
             buf.extend(item)

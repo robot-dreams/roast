@@ -1,4 +1,4 @@
-from ec import n
+from fastec import n
 from random import sample
 
 import secrets
