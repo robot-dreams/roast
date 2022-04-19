@@ -46,10 +46,8 @@ class CoordinatorModel:
 
         if s_i is not None:
             sid = self.i_to_sid[i]
-            pre = self.sid_to_pre[sid]
-            pre_i = self.i_to_pre[i]
             T = self.sid_to_T[sid]
-            ctx = SessionContext(self.X, self.i_to_X, self.msg, T, pre, pre_i)
+            ctx = SessionContext(self.X, self.i_to_X, self.msg, T, self.sid_to_pre[sid], self.i_to_pre[i])
 
             if not share_val(ctx, i, s_i):
                 self.mark_malicious(i)
