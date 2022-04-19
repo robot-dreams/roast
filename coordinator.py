@@ -5,6 +5,7 @@ from threading import Thread
 from typing import Any
 
 import secrets
+import sys
 import time
 
 from shamir import split_secret
@@ -86,15 +87,16 @@ class Coordinator:
                 raise Exception('Unknown ActionType', action_type)
 
 if __name__ == '__main__':
-    t = 2
-    n = 3
-    msg = secrets.token_bytes(32)
+    if len(sys.argv) != 4:
+        print(f'usage: {sys.argv[0]} <start_port> <t> <n>')
+        sys.exit(1)
 
-    i_to_addr = {
-        1: ("localhost", 12001),
-        2: ("localhost", 12002),
-        3: ("localhost", 12003),
-    }
+    start_port = int(sys.argv[1])
+    t = int(sys.argv[2])
+    n = int(sys.argv[3])
+
+    msg = secrets.token_bytes(32)
+    i_to_addr = {i + 1: ("localhost", start_port + i) for i in range(n)}
 
     # This is insecure; in practice we'd use DKG, but since
     # key generation is not the focus of the RoAST protocol, we will

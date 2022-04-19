@@ -6,6 +6,22 @@ This repository is a basic implementation of the RoAST protocol for robust thres
 
 We currently use the [`fastecdsa` library](https://github.com/AntonKueltz/fastecdsa) for elliptic curve operations, but a fully optimized implementation should use the [`secp256k1` library](https://github.com/bitcoin-core/secp256k1) instead.
 
+## Running
+
+The following example shows three participants listening on ports 12001 - 12003, with a threshold value of `t = 2`.
+
+1. First launch all the participants:
+
+```shell
+% for i in `seq 12001 12003`; do python3 participant.py $i &; done
+```
+
+2. Next, start the coordinator:
+
+```shell
+% python3 coordinator.py 12001 2 3
+```
+
 ## Protocol
 
 1. Initialization

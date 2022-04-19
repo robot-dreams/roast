@@ -29,26 +29,25 @@ if __name__ == '__main__':
     sock.bind(addr)
     sock.listen()
 
+    print('Listening for incoming connections on', addr)
+
+    connection, src = sock.accept()
+    print('Accepted connection from', src)
+
+    i, sk_i = recv_obj(connection)
+    print(f'Received initialization data as participant {i}')
+
+    participant = Participant(i, sk_i)
+    send_obj(connection, (i, None, participant.pre_i))
+    print(f'Sent initial pre_i value')
+
     while True:
-        print('Listening for incoming connections on', addr)
+        ctx = recv_obj(connection)
+        if ctx is None:
+            print('Connection closed')
+            break
 
-        connection, src = sock.accept()
-        print('Accepted connection from', src)
-
-        i, sk_i = recv_obj(connection)
-        print(f'Received initialization data as participant {i}')
-
-        participant = Participant(i, sk_i)
-        send_obj(connection, (i, None, participant.pre_i))
-        print(f'Sent initial pre_i value')
-
-        while True:
-            ctx = recv_obj(connection)
-            if ctx is None:
-                print('Connection closed')
-                break
-
-            print(f'Received sign_round request')
-            s_i, pre_i = participant.sign_round(ctx)
-            send_obj(connection, (i, s_i, pre_i))
-            print(f'Sent sign_round response and next pre_i value')
+        print(f'Received sign_round request')
+        s_i, pre_i = participant.sign_round(ctx)
+        send_obj(connection, (i, s_i, pre_i))
+        print(f'Sent sign_round response and next pre_i value')
