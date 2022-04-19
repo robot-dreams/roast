@@ -48,17 +48,17 @@ class CoordinatorModel:
             sid = self.i_to_sid[i]
             pre = self.sid_to_pre[sid]
             pre_i = self.i_to_pre[i]
-            ctx = SessionContext(self.X, self.i_to_X, self.msg, pre, pre_i)
             T = self.sid_to_T[sid]
+            ctx = SessionContext(self.X, self.i_to_X, self.msg, T, pre, pre_i)
 
-            if not share_val(ctx, T, i, s_i):
+            if not share_val(ctx, i, s_i):
                 self.mark_malicious(i)
                 return (ActionType.NO_OP, None)
 
             self.sid_to_i_to_s[sid][i] = s_i
 
             if len(self.sid_to_i_to_s[sid]) == self.t:
-                sig = sign_agg(ctx, T, self.sid_to_i_to_s[sid])
+                sig = sign_agg(ctx, self.sid_to_i_to_s[sid])
                 assert verify(ctx, sig)
                 return (ActionType.SESSION_SUCCESS, (ctx, sig))
 
@@ -77,8 +77,8 @@ class CoordinatorModel:
 
             data = []
             for i in T:
-                ctx = SessionContext(self.X, self.i_to_X, self.msg, pre, self.i_to_pre[i])
-                data.append((ctx, T, i))
+                ctx = SessionContext(self.X, self.i_to_X, self.msg, T, pre, self.i_to_pre[i])
+                data.append((ctx, i))
             return (ActionType.SESSION_START, data)
 
         return (ActionType.NO_OP, None)

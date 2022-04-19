@@ -45,12 +45,13 @@ def pre_agg(i_to_pre, T):
     pre = (D, E)
     return pre
 
-SessionContext = namedtuple('SessionContext', ['X', 'i_to_X', 'msg', 'pre', 'pre_i'])
+SessionContext = namedtuple('SessionContext', ['X', 'i_to_X', 'msg', 'T', 'pre', 'pre_i'])
 
-def share_val(ctx, T, i, s_i):
+def share_val(ctx, i, s_i):
     X = ctx.X
     X_i = ctx.i_to_X[i]
     msg = ctx.msg
+    T = ctx.T
     D, E = ctx.pre
     D_i, E_i = ctx.pre_i
 
@@ -62,9 +63,10 @@ def share_val(ctx, T, i, s_i):
     rhs = point_add(point_add(D_i, point_mul(E_i, b)), point_mul(X_i, c * lambda_i % n))
     return lhs == rhs
 
-def sign_round(ctx, T, i, sk_i, spre_i):
+def sign_round(ctx, i, sk_i, spre_i):
     X = ctx.X
     msg = ctx.msg
+    T = ctx.T
     D, E = ctx.pre
 
     d_i, e_i = spre_i
@@ -75,9 +77,10 @@ def sign_round(ctx, T, i, sk_i, spre_i):
     s_i = (d_i + b * e_i + c * lambda_i * sk_i) % n
     return s_i
 
-def sign_agg(ctx, T, i_to_s):
+def sign_agg(ctx, i_to_s):
     X = ctx.X
     msg = ctx.msg
+    T = ctx.T
     D, E = ctx.pre
 
     b = H('non', X, msg, D, E)

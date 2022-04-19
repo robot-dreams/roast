@@ -72,8 +72,8 @@ class Coordinator:
             elif action_type == ActionType.SESSION_START:
                 print(f'Enough participants are ready, starting new session with sid {self.model.sid_ctr}')
                 for item in data:
-                    ctx, T, i = item
-                    self.outgoing.put((i, (ctx, T)))
+                    ctx, i = item
+                    self.outgoing.put((i, ctx))
 
             elif action_type == ActionType.SESSION_SUCCESS:
                 ctx, sig = data
