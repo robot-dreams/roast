@@ -1,5 +1,6 @@
 from dataclasses import dataclass, field
 from queue import PriorityQueue, Queue
+from random import sample, seed
 from socket import socket, AF_INET, SOCK_STREAM, SOL_SOCKET, SO_REUSEADDR
 from threading import Thread
 from typing import Any
@@ -43,13 +44,13 @@ class Coordinator:
             assert i in self.connections
             send_obj(self.connections[i], data)
 
-    def launch(self, i_to_addr, i_to_sk):
+    def launch(self, i_to_addr, i_to_sk, malicious):
         for i, addr in i_to_addr.items():
             self.connections[i] = socket(AF_INET, SOCK_STREAM)
             self.connections[i].setsockopt(SOL_SOCKET, SO_REUSEADDR, True)
             self.connections[i].connect(addr)
             print(f'Established connection to participant {i} at {addr}')
-            send_obj(self.connections[i], (i, i_to_sk[i]))
+            send_obj(self.connections[i], (i, i_to_sk[i], i in malicious))
             Thread(target=self.queue_incoming, args=[self.connections[i]], daemon=True).start()
 
         Thread(target=self.send_outgoing, daemon=True).start()
@@ -87,13 +88,18 @@ class Coordinator:
                 raise Exception('Unknown ActionType', action_type)
 
 if __name__ == '__main__':
-    if len(sys.argv) != 4:
-        print(f'usage: {sys.argv[0]} <start_port> <t> <n>')
+    seed(1)
+
+    if len(sys.argv) != 5:
+        print(f'usage: {sys.argv[0]} <start_port> <threshold> <total> <malicious>')
         sys.exit(1)
 
     start_port = int(sys.argv[1])
     t = int(sys.argv[2])
     n = int(sys.argv[3])
+    m = int(sys.argv[4])
+
+    malicious = sample(range(1, n + 1), m)
 
     msg = secrets.token_bytes(32)
     i_to_addr = {i + 1: ("localhost", start_port + i) for i in range(n)}
@@ -113,4 +119,4 @@ if __name__ == '__main__':
     outgoing = Queue()
 
     coordinator = Coordinator(model, actions, outgoing)
-    coordinator.launch(i_to_addr, i_to_sk)
+    coordinator.launch(i_to_addr, i_to_sk, malicious)

@@ -8,18 +8,23 @@ We currently use the [`fastecdsa` library](https://github.com/AntonKueltz/fastec
 
 ## Running
 
-The following example shows three participants listening on ports 12001 - 12003, with a threshold value of `t = 2`.
+The following example shows:
+
+* `start_port = 12001`
+* `threshold = 3`
+* `total = 5`
+* `malicious = 2`
 
 1. First launch all the participants:
 
 ```shell
-% for i in `seq 12001 12003`; do python3 participant.py $i &; done
+% for i in `seq 12001 12005`; do python3 participant.py $i &; done
 ```
 
 2. Next, start the coordinator:
 
 ```shell
-% python3 coordinator.py 12001 2 3
+% python3 coordinator.py 12001 3 5 2
 ```
 
 ## Protocol
@@ -27,7 +32,7 @@ The following example shows three participants listening on ports 12001 - 12003,
 1. Initialization
 
 * For each of the `n` participants:
-	* Coordinator sends `(i, x_i)` to initialize the participant
+	* Coordinator sends `(i, x_i, is_malicious)` to initialize the participant
 	* Participant responds with `(None, pre_i)` to prepare the first round
 
 2. Signing
@@ -35,6 +40,7 @@ The following example shows three participants listening on ports 12001 - 12003,
 * For each of the `t` ready participants in the current session:
 	* Coordinator sends `ctx` (a `SessionContext` object) to ask for a signature
 	* Participant responds with `(i, s_i, pre_i)` to sign and prepare for the next round
+		* If the participant was initialized with `is_malicious = True`, it will fail to respond
 
 A `SessionContext` object consists of the following fields:
 

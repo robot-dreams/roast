@@ -34,8 +34,8 @@ if __name__ == '__main__':
     connection, src = sock.accept()
     print('Accepted connection from', src)
 
-    i, sk_i = recv_obj(connection)
-    print(f'Received initialization data as participant {i}')
+    i, sk_i, is_malicious = recv_obj(connection)
+    print(f'Received initialization data as participant {i}, is_malicious = {is_malicious}')
 
     participant = Participant(i, sk_i)
     send_obj(connection, (i, None, participant.pre_i))
@@ -48,6 +48,9 @@ if __name__ == '__main__':
             break
 
         print(f'Received sign_round request')
-        s_i, pre_i = participant.sign_round(ctx)
-        send_obj(connection, (i, s_i, pre_i))
-        print(f'Sent sign_round response and next pre_i value')
+        if is_malicious:
+            print('Malicious participant is ignoring request')
+        else:
+            s_i, pre_i = participant.sign_round(ctx)
+            send_obj(connection, (i, s_i, pre_i))
+            print(f'Sent sign_round response and next pre_i value')
