@@ -21,11 +21,13 @@ The following example shows:
 % for i in `seq 12001 12005`; do python3 participant.py $i &; done
 ```
 
-2. Next, start the coordinator:
+2. Next, run the coordinator:
 
 ```shell
-% python3 coordinator.py 12001 3 5 2
+% python3 coordinator.py localhost 12001 3 5 2
 ```
+
+Note that it's possible to run the coordinator multiple times without relaunching all the participants.
 
 ## Protocol
 

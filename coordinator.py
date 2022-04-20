@@ -100,19 +100,20 @@ class Coordinator:
 if __name__ == '__main__':
     #logging.basicConfig(level=logging.INFO)
 
-    if len(sys.argv) != 5:
-        print(f'usage: {sys.argv[0]} <start_port> <threshold> <total> <malicious>')
+    if len(sys.argv) != 6:
+        print(f'usage: {sys.argv[0]} <host> <start_port> <threshold> <total> <malicious>')
         sys.exit(1)
 
-    start_port = int(sys.argv[1])
-    t = int(sys.argv[2])
-    n = int(sys.argv[3])
-    m = int(sys.argv[4])
+    host = sys.argv[1]
+    start_port = int(sys.argv[2])
+    t = int(sys.argv[3])
+    n = int(sys.argv[4])
+    m = int(sys.argv[5])
 
     malicious = secrets.SystemRandom().choices(population=range(1, n + 1), k=m)
 
     msg = secrets.token_bytes(32)
-    i_to_addr = {i + 1: ("localhost", start_port + i) for i in range(n)}
+    i_to_addr = {i + 1: (host, start_port + i) for i in range(n)}
 
     # This is insecure; in practice we'd use DKG, but since
     # key generation is not the focus of the RoAST protocol, we will
