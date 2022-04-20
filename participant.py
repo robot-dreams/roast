@@ -45,7 +45,7 @@ if __name__ == '__main__':
         sys.exit(1)
 
     port = int(sys.argv[1])
-    addr = ('localhost', port)
+    addr = ('0.0.0.0', port)
 
     sock = socket(AF_INET, SOCK_STREAM)
     sock.setsockopt(SOL_SOCKET, SO_REUSEADDR, True)
