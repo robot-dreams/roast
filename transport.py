@@ -14,7 +14,7 @@ def recv_obj(sock):
     while size > 0:
         part = sock.recv(size)
         if not part:
-            raise RuntimeError
+            return None
         size -= len(part)
         parts.append(part)
     data = b''.join(parts)
