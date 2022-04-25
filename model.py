@@ -1,7 +1,8 @@
 from collections import defaultdict
 from enum import Enum, auto
 
-from roast import SessionContext, pre_agg, sign_agg, share_val, verify
+from fastec import point_add, point_mul
+from roast import H, SessionContext, pre_agg, sign_agg, share_val, verify
 
 # Enum values are used for priority (small value = high priority)
 class ActionType(Enum):
@@ -33,6 +34,7 @@ class CoordinatorModel:
 
         self.sid_ctr = 0
         self.sid_to_T = {}
+        self.sid_to_R = {}
         self.sid_to_pre = {}
         self.sid_to_i_to_s = defaultdict(dict)
 
@@ -47,7 +49,7 @@ class CoordinatorModel:
         if s_i is not None:
             sid = self.i_to_sid[i]
             T = self.sid_to_T[sid]
-            ctx = SessionContext(self.X, self.i_to_X, self.msg, T, self.sid_to_pre[sid], self.i_to_pre[i])
+            ctx = SessionContext(self.X, self.i_to_X, self.msg, T, self.sid_to_R[sid], self.sid_to_pre[sid], self.i_to_pre[i])
 
             if not share_val(ctx, i, s_i):
                 self.mark_malicious(i)
@@ -67,15 +69,19 @@ class CoordinatorModel:
             sid = self.sid_ctr
             T = sorted(self.ready)
             pre = pre_agg(self.i_to_pre, T)
+            D, E = pre
+            b = H('non', self.X, self.msg, D, E)
+            R = point_add(D, point_mul(E, b))
             for i in T:
                 self.i_to_sid[i] = sid
             self.sid_to_T[sid] = T
+            self.sid_to_R[sid] = R
             self.sid_to_pre[sid] = pre
             self.ready.clear()
 
             data = []
             for i in T:
-                ctx = SessionContext(self.X, self.i_to_X, self.msg, T, pre, self.i_to_pre[i])
+                ctx = SessionContext(self.X, self.i_to_X, self.msg, T, R, pre, self.i_to_pre[i])
                 data.append((ctx, i))
             return (ActionType.SESSION_START, data)
 

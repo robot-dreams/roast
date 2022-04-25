@@ -4,7 +4,7 @@ import logging
 import sys
 import time
 
-from roast import SessionContext, pre_round, sign_round
+from roast import pre_round, sign_round
 from transport import send_obj, recv_obj
 
 class NonceCache:
