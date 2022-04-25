@@ -45,18 +45,18 @@ def pre_agg(i_to_pre, T):
     pre = (D, E)
     return pre
 
-SessionContext = namedtuple('SessionContext', ['X', 'i_to_X', 'msg', 'T', 'pre', 'pre_i'])
+SessionContext = namedtuple('SessionContext', ['X', 'i_to_X', 'msg', 'T', 'R', 'pre', 'pre_i'])
 
 def share_val(ctx, i, s_i):
     X = ctx.X
     X_i = ctx.i_to_X[i]
     msg = ctx.msg
     T = ctx.T
+    R = ctx.R
     D, E = ctx.pre
     D_i, E_i = ctx.pre_i
 
     b = H('non', X, msg, D, E)
-    R = point_add(D, point_mul(E, b))
     c = H('sig', X, msg, R)
     lambda_i = lagrange(T, i)
     lhs = point_mul(G, s_i)
@@ -71,6 +71,9 @@ def sign_round(ctx, i, sk_i, spre_i):
 
     d_i, e_i = spre_i
     b = H('non', X, msg, D, E)
+
+    # The participant should recompute R itself, instead of trusting the
+    # value it received from the coordinator.
     R = point_add(D, point_mul(E, b))
     c = H('sig', X, msg, R)
     lambda_i = lagrange(T, i)
@@ -81,10 +84,8 @@ def sign_agg(ctx, i_to_s):
     X = ctx.X
     msg = ctx.msg
     T = ctx.T
-    D, E = ctx.pre
+    R = ctx.R
 
-    b = H('non', X, msg, D, E)
-    R = point_add(D, point_mul(E, b))
     s = 0
     for i in T:
         s_i = i_to_s[i]
