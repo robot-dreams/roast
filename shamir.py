@@ -9,12 +9,19 @@ def poly_eval(coeffs, x):
         y = (y + c_i * pow(x, i, n)) % n
     return y
 
+inverse_cache = {}
+
+def modinv(x):
+    if x not in inverse_cache:
+        inverse_cache[x] = pow(x, n - 2, n)
+    return inverse_cache[x]
+
 def lagrange(T, i):
     lamb_i = 1
     for j in T:
         if j != i:
             lamb_i = lamb_i * j % n
-            lamb_i = lamb_i * pow(j - i, n - 2, n) % n
+            lamb_i = lamb_i * modinv(j - i) % n
     return lamb_i
 
 def split_secret(secret, t, k):
