@@ -32,6 +32,7 @@ class CoordinatorModel:
         self.i_to_pre = {}
         self.i_to_sid = {}
 
+        # TODO: Is it possible to just store sid_to_ctx?
         self.sid_ctr = 0
         self.sid_to_T = {}
         self.sid_to_R = {}
