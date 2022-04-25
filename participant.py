@@ -2,6 +2,7 @@ from socket import socket, AF_INET, SOCK_STREAM, SOL_SOCKET, SO_REUSEADDR
 
 import logging
 import sys
+import time
 
 from roast import SessionContext, pre_round, sign_round
 from transport import send_obj, recv_obj
@@ -34,7 +35,7 @@ def handle_requests(connection, nonce_cache):
     logging.debug(f'Received initialization data as participant {i}, is_malicious = {is_malicious}')
 
     participant = Participant(i, sk_i, nonce_cache)
-    send_obj(connection, (i, None, participant.pre_i))
+    send_obj(connection, (i, None, participant.pre_i, 0))
     logging.debug(f'Sent initial pre_i value')
 
     while True:
@@ -47,9 +48,11 @@ def handle_requests(connection, nonce_cache):
         if is_malicious:
             logging.debug('Malicious participant is ignoring request')
         else:
+            start = time.time()
             s_i, pre_i = participant.sign_round(ctx)
-            send_obj(connection, (i, s_i, pre_i))
-            logging.debug(f'Sent sign_round response and next pre_i value')
+            elapsed = time.time() - start
+            send_obj(connection, (i, s_i, pre_i, elapsed))
+            logging.info(f'Sent sign_round response and next pre_i value in {elapsed:.4f} seconds')
 
 if __name__ == '__main__':
     logging.basicConfig(level=logging.INFO)
