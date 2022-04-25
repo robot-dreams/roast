@@ -131,4 +131,4 @@ if __name__ == '__main__':
 
     coordinator = Coordinator(model, actions, outgoing)
     elapsed, send_count, recv_count = coordinator.run(i_to_addr, i_to_sk, malicious)
-    print(t, n, m, elapsed, send_count, recv_count, sep=',')
+    print(t, n, m, elapsed, fastec.fastec_elapsed, send_count, recv_count, sep=',')
