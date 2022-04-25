@@ -31,27 +31,29 @@ class Participant:
 
 def handle_requests(connection, nonce_cache):
     i, sk_i, is_malicious = recv_obj(connection)
-    logging.info(f'Received initialization data as participant {i}, is_malicious = {is_malicious}')
+    logging.debug(f'Received initialization data as participant {i}, is_malicious = {is_malicious}')
 
     participant = Participant(i, sk_i, nonce_cache)
     send_obj(connection, (i, None, participant.pre_i))
-    logging.info(f'Sent initial pre_i value')
+    logging.debug(f'Sent initial pre_i value')
 
     while True:
         ctx = recv_obj(connection)
         if ctx is None:
-            logging.info('Connection closed')
+            logging.debug('Connection closed')
             break
 
-        logging.info(f'Received sign_round request')
+        logging.debug(f'Received sign_round request')
         if is_malicious:
-            logging.info('Malicious participant is ignoring request')
+            logging.debug('Malicious participant is ignoring request')
         else:
             s_i, pre_i = participant.sign_round(ctx)
             send_obj(connection, (i, s_i, pre_i))
-            logging.info(f'Sent sign_round response and next pre_i value')
+            logging.debug(f'Sent sign_round response and next pre_i value')
 
 if __name__ == '__main__':
+    logging.basicConfig(level=logging.INFO)
+
     if len(sys.argv) != 3:
         print(f'usage: {sys.argv[0]} <port> <num_precomputed_nonces>')
         sys.exit(1)
@@ -70,10 +72,10 @@ if __name__ == '__main__':
     sock.listen()
 
     while True:
-        logging.info(f'Listening for incoming connections on {addr}')
+        logging.debug(f'Listening for incoming connections on {addr}')
 
         connection, src = sock.accept()
-        logging.info('Accepted connection from', src)
+        logging.debug('Accepted connection from {src}')
 
         try:
             handle_requests(connection, nonce_cache)

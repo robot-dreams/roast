@@ -49,7 +49,7 @@ class Coordinator:
             self.connections[i] = socket(AF_INET, SOCK_STREAM)
             self.connections[i].setsockopt(SOL_SOCKET, SO_REUSEADDR, True)
             self.connections[i].connect(addr_i)
-            logging.info(f'Established connection to participant {i} at {addr_i}')
+            logging.debug(f'Established connection to participant {i} at {addr_i}')
             Thread(target=self.queue_incoming, args=[self.connections[i]], daemon=True).start()
 
         Thread(target=self.send_outgoing, daemon=True).start()
@@ -74,16 +74,16 @@ class Coordinator:
 
                 i, s_i, pre_i = data
                 if s_i is None:
-                    logging.info(f'Initial incoming message from participant {i}')
+                    logging.debug(f'Initial incoming message from participant {i}')
                 else:
-                    logging.info(f'Incoming message from participant {i} in session {self.model.i_to_sid[i]}')
+                    logging.debug(f'Incoming message from participant {i} in session {self.model.i_to_sid[i]}')
                 action_type, data = self.model.handle_incoming(i, s_i, pre_i)
                 self.queue_action(action_type, data)
 
             elif action_type == ActionType.SESSION_START:
                 send_count += len(data)
 
-                logging.info(f'Enough participants are ready, starting new session with sid {self.model.sid_ctr}')
+                logging.debug(f'Enough participants are ready, starting new session with sid {self.model.sid_ctr}')
                 for item in data:
                     ctx, i = item
                     self.outgoing.put((i, ctx))
@@ -98,7 +98,7 @@ class Coordinator:
                 raise Exception('Unknown ActionType', action_type)
 
 if __name__ == '__main__':
-    #logging.basicConfig(level=logging.INFO)
+    logging.basicConfig(level=logging.INFO)
 
     if len(sys.argv) != 6:
         print(f'usage: {sys.argv[0]} <host> <start_port> <threshold> <total> <malicious>')
