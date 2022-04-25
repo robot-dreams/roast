@@ -18,8 +18,10 @@ The following example shows:
 1. First launch all the participants:
 
 ```shell
-% for i in `seq 12001 12005`; do python3 participant.py $i &; done
+% for i in `seq 12001 12005`; do python3 participant.py $i 64 &; done
 ```
+
+The `num_precomputed_nonces` value of `64` indicates how many nonces to precompute before listening for connections.
 
 2. Next, run the coordinator:
 
@@ -27,7 +29,7 @@ The following example shows:
 % python3 coordinator.py localhost 12001 3 5 2
 ```
 
-Note that it's possible to run the coordinator multiple times without relaunching all the participants.
+Replace `localhost` with the correct host if you're not running the participants on the same machine as the coordinator. Note that it's possible to run the coordinator multiple times without relaunching all the participants, as long as the participants haven't run out of precomputed nonces.
 
 ## Protocol
 
@@ -35,13 +37,14 @@ Note that it's possible to run the coordinator multiple times without relaunchin
 
 * For each of the `n` participants:
 	* Coordinator sends `(i, x_i, is_malicious)` to initialize the participant
-	* Participant responds with `(None, pre_i)` to prepare the first round
+	* Participant responds with `(i, None, pre_i, 0)` to prepare the first round
 
 2. Signing
 
 * For each of the `t` ready participants in the current session:
 	* Coordinator sends `ctx` (a `SessionContext` object) to ask for a signature
-	* Participant responds with `(i, s_i, pre_i)` to sign and prepare for the next round
+	* Participant responds with `(i, s_i, pre_i, elapsed)` to sign and prepare for the next round
+		* The `elapsed` value indicates how long it took the participant to produce the response
 		* If the participant was initialized with `is_malicious = True`, it will fail to respond
 
 A `SessionContext` object consists of the following fields:
@@ -50,5 +53,6 @@ A `SessionContext` object consists of the following fields:
 * `i_to_X`: map from participants `i` to public key shares `x_i`
 * `msg`: message to be signed
 * `T`: set of `t` participants for current session
+* `R`: precomputed value of aggregate nonce (an optimization for the coordinator)
 * `pre`: aggregate nonce
 * `pre_i`: public nonce for the current participant
