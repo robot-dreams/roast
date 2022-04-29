@@ -36,18 +36,20 @@ Replace `localhost` with the correct host if you're not running the participants
 1. Initialization
 
 * For each of the `n` participants:
-	* Coordinator sends `(i, x_i, is_malicious)` to initialize the participant
+	* Coordinator sends `(X, i, x_i, is_malicious)` to initialize the participant
 	* Participant responds with `(i, None, pre_i, 0)` to prepare the first round
 
 2. Signing
 
 * For each of the `t` ready participants in the current session:
-	* Coordinator sends `ctx` (a `SessionContext` object) to ask for a signature
+	* Coordinator sends `(msg, T, pre)` to ask for a signature
 	* Participant responds with `(i, s_i, pre_i, elapsed)` to sign and prepare for the next round
 		* The `elapsed` value indicates how long it took the participant to produce the response
 		* If the participant was initialized with `is_malicious = True`, it will fail to respond
 
-A `SessionContext` object consists of the following fields:
+## Implementation
+
+Note that on the coordinator side, we use a `SessionContext` as a wrapper to hold various fields used during the protocol, in order to reduce the number of function parameters. A `SessionContext` consists of:
 
 * `X`: public key
 * `i_to_X`: map from participants `i` to public key shares `x_i`
