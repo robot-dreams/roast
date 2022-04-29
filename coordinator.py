@@ -44,7 +44,7 @@ class Coordinator:
             assert i in self.connections
             send_obj(self.connections[i], data)
 
-    def run(self, i_to_addr, i_to_sk, malicious):
+    def run(self, X, i_to_addr, i_to_sk, malicious):
         for i, addr_i in i_to_addr.items():
             self.connections[i] = socket(AF_INET, SOCK_STREAM)
             self.connections[i].setsockopt(SOL_SOCKET, SO_REUSEADDR, True)
@@ -61,7 +61,7 @@ class Coordinator:
 
         send_count += len(i_to_sk)
         for i, sk_i in i_to_sk.items():
-            send_obj(self.connections[i], (i, sk_i, i in malicious))
+            send_obj(self.connections[i], (X, i, sk_i, i in malicious))
 
         while True:
             action_type, data = self.actions.get().action
@@ -86,7 +86,7 @@ class Coordinator:
                 logging.debug(f'Enough participants are ready, starting new session with sid {self.model.sid_ctr}')
                 for item in data:
                     ctx, i = item
-                    self.outgoing.put((i, ctx))
+                    self.outgoing.put((i, (ctx.msg, ctx.T, ctx.pre)))
 
             elif action_type == ActionType.SESSION_SUCCESS:
                 ctx, sig = data
@@ -130,5 +130,5 @@ if __name__ == '__main__':
     outgoing = Queue()
 
     coordinator = Coordinator(model, actions, outgoing)
-    elapsed, send_count, recv_count = coordinator.run(i_to_addr, i_to_sk, malicious)
+    elapsed, send_count, recv_count = coordinator.run(X, i_to_addr, i_to_sk, malicious)
     print(t, n, m, elapsed, fastec.fastec_elapsed, send_count, recv_count, sep=',')

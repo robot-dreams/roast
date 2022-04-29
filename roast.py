@@ -63,11 +63,8 @@ def share_val(ctx, i, s_i):
     rhs = point_add(point_add(D_i, point_mul(E_i, b)), point_mul(X_i, c * lambda_i % n))
     return lhs == rhs
 
-def sign_round(ctx, i, sk_i, spre_i):
-    X = ctx.X
-    msg = ctx.msg
-    T = ctx.T
-    D, E = ctx.pre
+def sign_round(X, msg, T, pre, i, sk_i, spre_i):
+    D, E = pre
 
     d_i, e_i = spre_i
     b = H('non', X, msg, D, E)

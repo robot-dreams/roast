@@ -19,37 +19,40 @@ class NonceCache:
         return self.cached.pop()
 
 class Participant:
-    def __init__(self, i, sk_i, nonce_cache):
+    def __init__(self, X, i, sk_i, nonce_cache):
+        self.X = X
         self.i = i
         self.sk_i = sk_i
         self.nonce_cache = nonce_cache
         self.spre_i, self.pre_i = nonce_cache.get()
 
-    def sign_round(self, ctx):
-        s_i = sign_round(ctx, self.i, self.sk_i, self.spre_i)
+    def sign_round(self, msg, T, pre):
+        s_i = sign_round(self.X, msg, T, pre, self.i, self.sk_i, self.spre_i)
         self.spre_i, self.pre_i = self.nonce_cache.get()
         return s_i, self.pre_i
 
 def handle_requests(connection, nonce_cache):
-    i, sk_i, is_malicious = recv_obj(connection)
+    X, i, sk_i, is_malicious = recv_obj(connection)
     logging.debug(f'Received initialization data as participant {i}, is_malicious = {is_malicious}')
 
-    participant = Participant(i, sk_i, nonce_cache)
+    participant = Participant(X, i, sk_i, nonce_cache)
     send_obj(connection, (i, None, participant.pre_i, 0))
     logging.debug(f'Sent initial pre_i value')
 
     while True:
-        ctx = recv_obj(connection)
-        if ctx is None:
+        obj = recv_obj(connection)
+        if obj is None:
             logging.debug('Connection closed')
             break
+
+        msg, T, pre = obj
 
         logging.debug(f'Received sign_round request')
         if is_malicious:
             logging.debug('Malicious participant is ignoring request')
         else:
             start = time.time()
-            s_i, pre_i = participant.sign_round(ctx)
+            s_i, pre_i = participant.sign_round(msg, T, pre)
             elapsed = time.time() - start
             send_obj(connection, (i, s_i, pre_i, elapsed))
             logging.info(f'Sent sign_round response and next pre_i value in {elapsed:.4f} seconds')
