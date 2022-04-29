@@ -1,6 +1,6 @@
 ## Overview
 
-This repository is a basic implementation of the RoAST protocol for robust threshold signatures, which is a variant of FROST. It's meant to be used only for measuring how performance scales with the various parameters of the protocol (e.g. threshold value, total number of participants, number of malicious participants).
+This repository is a basic implementation of the ROAST protocol for robust threshold signatures, which is a variant of FROST. It's meant to be used only for measuring how performance scales with the various parameters of the protocol (e.g. threshold value, total number of participants, number of malicious participants).
 
 **WARNING**: This implementation should NOT be used in production. Among other reasons, it relies on a completely trusted coordinator to generate and distribute private keys to participants.
 

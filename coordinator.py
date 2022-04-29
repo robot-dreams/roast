@@ -116,7 +116,7 @@ if __name__ == '__main__':
     i_to_addr = {i + 1: (host, start_port + i) for i in range(n)}
 
     # This is insecure; in practice we'd use DKG, but since
-    # key generation is not the focus of the RoAST protocol, we will
+    # key generation is not the focus of the ROAST protocol, we will
     # keep the implementation simple by having the coordinator
     # act as a centralized dealer.
     sk = 1 + secrets.randbelow(fastec.n - 1)
