@@ -18,7 +18,7 @@ The following example shows:
 1. First launch all the participants:
 
 ```shell
-% for i in `seq 12001 12005`; do python3 participant.py $i 64 &; done
+% for i in `seq 12001 12005`; do python3 participant.py $i 64 & done
 ```
 
 The `num_precomputed_nonces` value of `64` indicates how many nonces to precompute before listening for connections.
