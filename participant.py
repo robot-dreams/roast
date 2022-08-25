@@ -36,7 +36,7 @@ def handle_requests(connection, nonce_cache):
     logging.debug(f'Received initialization data as participant {i}, is_malicious = {is_malicious}')
 
     participant = Participant(X, i, sk_i, nonce_cache)
-    send_obj(connection, (i, None, participant.pre_i, 0))
+    send_obj(connection, (i, None, participant.pre_i))
     logging.debug(f'Sent initial pre_i value')
 
     while True:
@@ -54,7 +54,7 @@ def handle_requests(connection, nonce_cache):
             start = time.time()
             s_i, pre_i = participant.sign_round(msg, T, pre)
             elapsed = time.time() - start
-            send_obj(connection, (i, s_i, pre_i, elapsed))
+            send_obj(connection, (i, s_i, pre_i))
             logging.info(f'Sent sign_round response and next pre_i value in {elapsed:.4f} seconds')
 
 if __name__ == '__main__':

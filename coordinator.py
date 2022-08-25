@@ -73,7 +73,7 @@ class Coordinator:
             elif action_type == ActionType.INCOMING:
                 recv_count += 1
 
-                i, s_i, pre_i, elapsed = data
+                i, s_i, pre_i = data
                 if s_i is None:
                     logging.debug(f'Initial incoming message from participant {i}')
                 else:
