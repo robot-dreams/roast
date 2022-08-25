@@ -1,6 +1,6 @@
 from dataclasses import dataclass, field
 from queue import PriorityQueue, Queue
-from socket import socket, AF_INET, SOCK_STREAM, SOL_SOCKET, SO_REUSEADDR
+from socket import socket, AF_INET, SOCK_STREAM, SOL_SOCKET, SO_REUSEADDR, IPPROTO_TCP, TCP_NODELAY
 from threading import Thread
 from typing import Any
 
@@ -48,6 +48,7 @@ class Coordinator:
         for i, addr_i in i_to_addr.items():
             self.connections[i] = socket(AF_INET, SOCK_STREAM)
             self.connections[i].setsockopt(SOL_SOCKET, SO_REUSEADDR, True)
+            self.connections[i].setsockopt(IPPROTO_TCP, TCP_NODELAY, True)
             self.connections[i].connect(addr_i)
             logging.debug(f'Established connection to participant {i} at {addr_i}')
             Thread(target=self.queue_incoming, args=[self.connections[i]], daemon=True).start()

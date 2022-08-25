@@ -3,8 +3,7 @@ import pickle
 def send_obj(sock, obj):
     data = pickle.dumps(obj)
     size = len(data).to_bytes(4, 'little')
-    sock.sendall(size)
-    sock.sendall(data)
+    sock.sendall(size + data)
 
 def recv_obj(sock):
     size = int.from_bytes(sock.recv(4), 'little')

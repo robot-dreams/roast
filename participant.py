@@ -1,4 +1,4 @@
-from socket import socket, AF_INET, SOCK_STREAM, SOL_SOCKET, SO_REUSEADDR
+from socket import socket, AF_INET, SOCK_STREAM, SOL_SOCKET, SO_REUSEADDR, IPPROTO_TCP, TCP_NODELAY
 
 import logging
 import sys
@@ -74,6 +74,7 @@ if __name__ == '__main__':
 
     sock = socket(AF_INET, SOCK_STREAM)
     sock.setsockopt(SOL_SOCKET, SO_REUSEADDR, True)
+    sock.setsockopt(IPPROTO_TCP, TCP_NODELAY, True)
     sock.bind(addr)
     sock.listen()
 
