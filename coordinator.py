@@ -1,8 +1,9 @@
 from dataclasses import dataclass, field
-from queue import PriorityQueue, Queue
+from multiprocessing import Queue
 from socket import socket, AF_INET, SOCK_STREAM, SOL_SOCKET, SO_REUSEADDR, IPPROTO_TCP, TCP_NODELAY
-from threading import Thread
+from multiprocessing import Process
 from typing import Any
+from roast import share_val
 
 import logging
 import secrets
@@ -27,15 +28,22 @@ class Coordinator:
         self.actions = actions
         self.outgoing = outgoing
         self.connections = {}
+        self.i_to_cached_ctx = {i + 1: Queue() for i in range(n)}
 
     def queue_action(self, action_type, data):
         self.actions.put(PriorityAction(action_type.value, (action_type, data)))
 
-    def queue_incoming(self, sock):
+    def queue_incoming(self, sock, cached_ctx_queue):
         while True:
             data = recv_obj(sock)
             if not data:
                 break
+            i, s_i, pre_i = data
+            share_is_valid = False
+            if s_i is not None:
+                ctx = cached_ctx_queue.get()
+                share_is_valid = share_val(ctx, i, s_i)
+            data = i, s_i, pre_i, share_is_valid
             self.queue_action(ActionType.INCOMING, data)
 
     def send_outgoing(self):
@@ -51,11 +59,6 @@ class Coordinator:
             self.connections[i].setsockopt(IPPROTO_TCP, TCP_NODELAY, True)
             self.connections[i].connect(addr_i)
             logging.debug(f'Established connection to participant {i} at {addr_i}')
-            Thread(target=self.queue_incoming, args=[self.connections[i]], daemon=True).start()
-
-        Thread(target=self.send_outgoing, daemon=True).start()
-
-        start = time.time()
 
         send_count = 0
         recv_count = 0
@@ -63,6 +66,12 @@ class Coordinator:
         send_count += len(i_to_sk)
         for i, sk_i in i_to_sk.items():
             send_obj(self.connections[i], (X, i, sk_i, i in malicious))
+
+        Process(target=self.send_outgoing, daemon=True).start()
+        for i in self.connections.keys():
+            Process(target=self.queue_incoming, args=[self.connections[i], self.i_to_cached_ctx[i]], daemon=True).start()
+
+        start = time.time()
 
         while True:
             action_type, data = self.actions.get().action
@@ -73,12 +82,12 @@ class Coordinator:
             elif action_type == ActionType.INCOMING:
                 recv_count += 1
 
-                i, s_i, pre_i = data
+                i, s_i, pre_i, share_is_valid = data
                 if s_i is None:
                     logging.debug(f'Initial incoming message from participant {i}')
                 else:
                     logging.debug(f'Incoming message from participant {i} in session {self.model.i_to_sid[i]}')
-                action_type, data = self.model.handle_incoming(i, s_i, pre_i)
+                action_type, data = self.model.handle_incoming(i, s_i, pre_i, share_is_valid)
                 self.queue_action(action_type, data)
 
             elif action_type == ActionType.SESSION_START:
@@ -87,6 +96,7 @@ class Coordinator:
                 logging.debug(f'Enough participants are ready, starting new session with sid {self.model.sid_ctr}')
                 for item in data:
                     ctx, i = item
+                    self.i_to_cached_ctx[i].put(ctx)
                     self.outgoing.put((i, (ctx.msg, ctx.T, ctx.pre)))
 
             elif action_type == ActionType.SESSION_SUCCESS:
@@ -127,7 +137,7 @@ if __name__ == '__main__':
     i_to_X = {i: sk_i * fastec.G for i, sk_i in i_to_sk.items()}
 
     model = CoordinatorModel(X, i_to_X, t, n, msg)
-    actions = PriorityQueue()
+    actions = Queue()
     outgoing = Queue()
 
     coordinator = Coordinator(model, actions, outgoing)

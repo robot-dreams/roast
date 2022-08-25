@@ -2,7 +2,7 @@ from collections import defaultdict
 from enum import Enum, auto
 
 from fastec import point_add, point_mul
-from roast import H, SessionContext, pre_agg, sign_agg, share_val
+from roast import H, SessionContext, pre_agg, sign_agg
 
 # Enum values are used for priority (small value = high priority)
 class ActionType(Enum):
@@ -39,7 +39,7 @@ class CoordinatorModel:
         self.sid_to_pre = {}
         self.sid_to_i_to_s = defaultdict(dict)
 
-    def handle_incoming(self, i, s_i, pre_i):
+    def handle_incoming(self, i, s_i, pre_i, share_is_valid):
         if i in self.malicious:
             return (ActionType.NO_OP, None)
 
@@ -48,14 +48,13 @@ class CoordinatorModel:
             return (ActionType.NO_OP, None)
 
         if s_i is not None:
-            sid = self.i_to_sid[i]
-            T = self.sid_to_T[sid]
-            ctx = SessionContext(self.X, self.i_to_X, self.msg, T, self.sid_to_R[sid], self.sid_to_pre[sid], self.i_to_pre[i])
-
-            if not share_val(ctx, i, s_i):
+            if not share_is_valid:
                 self.mark_malicious(i)
                 return (ActionType.NO_OP, None)
 
+            sid = self.i_to_sid[i]
+            T = self.sid_to_T[sid]
+            ctx = SessionContext(self.X, self.i_to_X, self.msg, T, self.sid_to_R[sid], self.sid_to_pre[sid], self.i_to_pre[i])
             self.sid_to_i_to_s[sid][i] = s_i
 
             if len(self.sid_to_i_to_s[sid]) == self.t:
