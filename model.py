@@ -2,7 +2,7 @@ from collections import defaultdict
 from enum import Enum, auto
 
 from fastec import point_add, point_mul
-from roast import H, SessionContext, pre_agg, sign_agg, share_val, verify
+from roast import H, SessionContext, pre_agg, sign_agg, share_val
 
 # Enum values are used for priority (small value = high priority)
 class ActionType(Enum):
@@ -60,7 +60,6 @@ class CoordinatorModel:
 
             if len(self.sid_to_i_to_s[sid]) == self.t:
                 sig = sign_agg(ctx, self.sid_to_i_to_s[sid])
-                assert verify(ctx, sig)
                 return (ActionType.SESSION_SUCCESS, (ctx, sig))
 
         self.i_to_pre[i] = pre_i

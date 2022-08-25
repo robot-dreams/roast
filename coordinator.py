@@ -91,8 +91,8 @@ class Coordinator:
 
             elif action_type == ActionType.SESSION_SUCCESS:
                 ctx, sig = data
-                assert verify(ctx, sig)
                 end = time.time()
+                assert verify(ctx, sig)
                 return end - start, send_count, recv_count
 
             else:
