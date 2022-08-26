@@ -70,7 +70,7 @@ class CoordinatorModel:
         if len(self.ready) == self.t:
             self.sid_ctr += 1
             sid = self.sid_ctr
-            T = sorted(self.ready)
+            T = set(self.ready)
             pre = pre_agg(self.i_to_pre, T)
             D, E = pre
             b = H('non', self.X, self.msg, D, E)
