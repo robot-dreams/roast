@@ -15,7 +15,6 @@ class CoordinatorModel:
     def __init__(self, X, i_to_X, t, n, msg):
         assert len(i_to_X) == n
         assert 2 <= t <= n
-        assert len(msg) == 32
 
         self.X = X
         self.i_to_X = i_to_X

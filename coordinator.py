@@ -113,7 +113,7 @@ if __name__ == '__main__':
 
     malicious = secrets.SystemRandom().choices(population=range(1, n + 1), k=m)
 
-    msg = secrets.token_bytes(32)
+    msg = b""
     i_to_addr = {i + 1: (host, start_port + i) for i in range(n)}
 
     # This is insecure; in practice we'd use DKG, but since
