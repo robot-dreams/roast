@@ -52,7 +52,7 @@ class Coordinator:
             assert i in self.connections
             send_obj(self.connections[i], data)
 
-    def run(self, X, i_to_addr, i_to_sk, malicious):
+    def run(self, X, i_to_addr, i_to_sk, m):
         for i, addr_i in i_to_addr.items():
             self.connections[i] = socket(AF_INET, SOCK_STREAM)
             self.connections[i].setsockopt(SOL_SOCKET, SO_REUSEADDR, True)
@@ -65,7 +65,7 @@ class Coordinator:
 
         send_count += len(i_to_sk)
         for i, sk_i in i_to_sk.items():
-            send_obj(self.connections[i], (X, i, sk_i, i in malicious))
+            send_obj(self.connections[i], (X, i, sk_i))
 
         Process(target=self.send_outgoing, daemon=True).start()
         for i in self.connections.keys():
@@ -94,10 +94,19 @@ class Coordinator:
                 send_count += len(data)
 
                 logging.debug(f'Enough participants are ready, starting new session with sid {self.model.sid_ctr}')
+
+                if isinstance(malicious, int):
+                    if self.model.sid_ctr <= malicious:
+                        malicious_here = [secrets.SystemRandom().choice([i for _, i in data])]
+                    else:
+                        malicious_here = []
+                else:
+                    malicious_here = malicious
+
                 for item in data:
                     ctx, i = item
                     self.i_to_cached_ctx[i].put(ctx)
-                    self.outgoing.put((i, (ctx.msg, ctx.T, ctx.pre)))
+                    self.outgoing.put((i, (ctx.msg, ctx.T, ctx.pre, i in malicious_here)))
 
             elif action_type == ActionType.SESSION_SUCCESS:
                 ctx, sig = data
@@ -111,8 +120,8 @@ class Coordinator:
 if __name__ == '__main__':
     logging.basicConfig(level=logging.INFO)
 
-    if len(sys.argv) != 6:
-        print(f'usage: {sys.argv[0]} <host> <start_port> <threshold> <total> <malicious>')
+    if len(sys.argv) != 7:
+        print(f'usage: {sys.argv[0]} <host> <start_port> <threshold> <total> <malicious> <adaptive>')
         sys.exit(1)
 
     host = sys.argv[1]
@@ -120,8 +129,12 @@ if __name__ == '__main__':
     t = int(sys.argv[3])
     n = int(sys.argv[4])
     m = int(sys.argv[5])
+    adaptive = bool(int(sys.argv[6]))
 
-    malicious = secrets.SystemRandom().choices(population=range(1, n + 1), k=m)
+    if adaptive:
+        malicious = m
+    else:
+        malicious = secrets.SystemRandom().choices(population=range(1, n + 1), k=m)
 
     msg = b""
     i_to_addr = {i + 1: (host, start_port + i) for i in range(n)}
@@ -142,4 +155,4 @@ if __name__ == '__main__':
 
     coordinator = Coordinator(model, actions, outgoing)
     elapsed, send_count, recv_count = coordinator.run(X, i_to_addr, i_to_sk, malicious)
-    print(t, n, m, elapsed, send_count, recv_count, sep=',')
+    print(t, n, m, adaptive, elapsed, send_count, recv_count, sep=',')
