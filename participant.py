@@ -32,12 +32,12 @@ class Participant:
         return s_i, self.pre_i
 
 def handle_requests(connection, nonce_cache):
-    X, i, sk_i, is_malicious = recv_obj(connection)
-    logging.debug(f'Received initialization data as participant {i}, is_malicious = {is_malicious}')
+    X, i, sk_i = recv_obj(connection)
+    logging.debug(f'Participant {i}: Received initialization data')
 
     participant = Participant(X, i, sk_i, nonce_cache)
     send_obj(connection, (i, None, participant.pre_i, 0))
-    logging.debug(f'Sent initial pre_i value')
+    logging.debug(f'Participant {i}: Sent initial pre_i value')
 
     while True:
         obj = recv_obj(connection)
@@ -45,17 +45,15 @@ def handle_requests(connection, nonce_cache):
             logging.debug('Connection closed')
             break
 
-        msg, T, pre = obj
+        msg, T, pre, is_malicious = obj
 
-        logging.debug(f'Received sign_round request')
-        if is_malicious:
-            logging.debug('Malicious participant is ignoring request')
-        else:
+        logging.info(f'Participant {i}: Received sign_round request, is_malicious = {is_malicious}')
+        if not is_malicious:
             start = time.time()
             s_i, pre_i = participant.sign_round(msg, T, pre)
             elapsed = time.time() - start
             send_obj(connection, (i, s_i, pre_i, elapsed))
-            logging.info(f'Sent sign_round response and next pre_i value in {elapsed:.4f} seconds')
+            logging.info(f'Participant {i}: Sent sign_round response and next pre_i value in {elapsed:.4f} seconds')
 
 if __name__ == '__main__':
     logging.basicConfig(level=logging.INFO)

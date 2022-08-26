@@ -1,6 +1,8 @@
 from collections import defaultdict
 from enum import Enum, auto
 
+import secrets
+
 from fastec import point_add, point_mul
 from roast import H, SessionContext, pre_agg, sign_agg, share_val, verify
 
@@ -14,7 +16,7 @@ class ActionType(Enum):
 class CoordinatorModel:
     def __init__(self, X, i_to_X, t, n, msg):
         assert len(i_to_X) == n
-        assert 2 <= t <= n
+        assert 2 <=t <= n
         assert len(msg) == 32
 
         self.X = X
@@ -80,11 +82,8 @@ class CoordinatorModel:
             self.sid_to_pre[sid] = pre
             self.ready.clear()
 
-            data = []
-            for i in T:
-                ctx = SessionContext(self.X, self.i_to_X, self.msg, T, R, pre, self.i_to_pre[i])
-                data.append((ctx, i))
-            return (ActionType.SESSION_START, data)
+            ctx = SessionContext(self.X, self.i_to_X, self.msg, T, R, pre, self.i_to_pre[i])
+            return (ActionType.SESSION_START, ctx)
 
         return (ActionType.NO_OP, None)
 
