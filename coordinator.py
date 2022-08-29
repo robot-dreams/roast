@@ -31,6 +31,29 @@ class AttackerLevel(Enum):
     # Exactly one malicious participant in the first m sessions
     ADAPTIVE = 2
 
+def random_sample(items, k):
+    items = list(items)
+    secrets.SystemRandom().shuffle(items)
+    return items[:k]
+
+class AttackerStrategy:
+    def __init__(self, level, n, m):
+        self.level = level
+        self.n = n
+        self.m = m
+        self.static_attackers = random_sample(range(1, n + 1), m)
+
+    def choose_malicious(self, T, sid_ctr):
+        if self.level == AttackerLevel.STATIC:
+            return self.static_attackers[:]
+        elif self.level == AttackerLevel.STATIC_COORDINATION:
+            candidates = set(T).intersection(self.static_attackers)
+            return random_sample(candidates, 1)
+        elif self.level == AttackerLevel.ADAPTIVE:
+            return random_sample(T, sid_ctr <= self.m)
+        else:
+            raise ValueError('Unexpected AttackerLevel:', self.level)
+
 class Coordinator:
     def __init__(self, model, actions, outgoing):
         self.model = model
@@ -61,10 +84,7 @@ class Coordinator:
             assert i in self.connections
             send_obj(self.connections[i], data)
 
-    def run(self, X, i_to_addr, i_to_sk, m, attacker):
-        if attacker in [AttackerLevel.STATIC, AttackerLevel.STATIC_COORDINATION]:
-            malicious = secrets.SystemRandom().choices(population=range(1, n + 1), k=m)
-
+    def run(self, X, i_to_addr, i_to_sk, attacker_strategy):
         for i, addr_i in i_to_addr.items():
             self.connections[i] = socket(AF_INET, SOCK_STREAM)
             self.connections[i].setsockopt(SOL_SOCKET, SO_REUSEADDR, True)
@@ -106,26 +126,12 @@ class Coordinator:
                 send_count += len(data)
 
                 logging.debug(f'Enough participants are ready, starting new session with sid {self.model.sid_ctr}')
-                # TODO Refactor to AttackerModel class
-                T = {i for _, i in data}
-                if attacker == AttackerLevel.STATIC:
-                    malicious_here = malicious
-                elif attacker == AttackerLevel.STATIC_COORDINATION:
-                    malicious_here = T.intersection(malicious)
-                    if len(malicious_here) > 0:
-                        malicious_here = [secrets.SystemRandom().choice(list(malicious_here))]
-                elif attacker == AttackerLevel.ADAPTIVE:
-                    if self.model.sid_ctr <=m:
-                        malicious_here = [secrets.SystemRandom().choice(list(T))]
-                    else:
-                        malicious_here = []
-                else:
-                    assert False
-
+                T = [i for _, i in data]
+                session_malicious = attacker_strategy.choose_malicious(T, self.model.sid_ctr)
                 for item in data:
                     ctx, i = item
                     self.i_to_cached_ctx[i].put(ctx)
-                    self.outgoing.put((i, (ctx.msg, ctx.T, ctx.pre, i in malicious_here)))
+                    self.outgoing.put((i, (ctx.msg, ctx.T, ctx.pre, i in session_malicious)))
 
             elif action_type == ActionType.SESSION_SUCCESS:
                 ctx, sig = data
@@ -148,7 +154,7 @@ if __name__ == '__main__':
     t = int(sys.argv[3])
     n = int(sys.argv[4])
     m = int(sys.argv[5])
-    attacker = AttackerLevel(int(sys.argv[6]))
+    attacker_level = AttackerLevel(int(sys.argv[6]))
 
     msg = b""
     i_to_addr = {i + 1: (host, start_port + i) for i in range(n)}
@@ -168,5 +174,6 @@ if __name__ == '__main__':
     outgoing = Queue()
 
     coordinator = Coordinator(model, actions, outgoing)
-    elapsed, send_count, recv_count = coordinator.run(X, i_to_addr, i_to_sk, m, attacker)
-    print(t, n, m, attacker, elapsed, send_count, recv_count, sep=',')
+    attacker_strategy = AttackerStrategy(attacker_level, n, m)
+    elapsed, send_count, recv_count = coordinator.run(X, i_to_addr, i_to_sk, attacker_strategy)
+    print(t, n, m, attacker_level, elapsed, send_count, recv_count, sep=',')
