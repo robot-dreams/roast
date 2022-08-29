@@ -1,6 +1,6 @@
 from dataclasses import dataclass, field
 from queue import PriorityQueue, Queue
-from socket import socket, AF_INET, SOCK_STREAM, SOL_SOCKET, SO_REUSEADDR
+from socket import socket, AF_INET, SOCK_STREAM, SOL_SOCKET, SO_REUSEADDR, IPPROTO_TCP, TCP_NODELAY
 from threading import Thread
 from typing import Any
 
@@ -48,6 +48,7 @@ class Coordinator:
         for i, addr_i in i_to_addr.items():
             self.connections[i] = socket(AF_INET, SOCK_STREAM)
             self.connections[i].setsockopt(SOL_SOCKET, SO_REUSEADDR, True)
+            self.connections[i].setsockopt(IPPROTO_TCP, TCP_NODELAY, True)
             self.connections[i].connect(addr_i)
             logging.debug(f'Established connection to participant {i} at {addr_i}')
             Thread(target=self.queue_incoming, args=[self.connections[i]], daemon=True).start()
@@ -72,7 +73,7 @@ class Coordinator:
             elif action_type == ActionType.INCOMING:
                 recv_count += 1
 
-                i, s_i, pre_i, elapsed = data
+                i, s_i, pre_i = data
                 if s_i is None:
                     logging.debug(f'Initial incoming message from participant {i}')
                 else:
@@ -90,8 +91,8 @@ class Coordinator:
 
             elif action_type == ActionType.SESSION_SUCCESS:
                 ctx, sig = data
-                assert verify(ctx, sig)
                 end = time.time()
+                assert verify(ctx, sig)
                 return end - start, send_count, recv_count
 
             else:
@@ -112,7 +113,7 @@ if __name__ == '__main__':
 
     malicious = secrets.SystemRandom().choices(population=range(1, n + 1), k=m)
 
-    msg = secrets.token_bytes(32)
+    msg = b""
     i_to_addr = {i + 1: (host, start_port + i) for i in range(n)}
 
     # This is insecure; in practice we'd use DKG, but since
