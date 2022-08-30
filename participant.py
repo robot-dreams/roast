@@ -8,7 +8,7 @@ import time
 from roast import pre_round, sign_round
 from transport import send_obj, recv_obj
 
-MAX_NONCE_QUEUE = 16
+MAX_NONCE_QUEUE = 32
 
 class Participant:
     def __init__(self, X, i, sk_i, nonce_queue):
