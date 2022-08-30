@@ -177,4 +177,4 @@ if __name__ == '__main__':
     coordinator = Coordinator(model, actions, outgoing)
     attacker_strategy = AttackerStrategy(attacker_level, n, m)
     elapsed, send_count, recv_count = coordinator.run(X, i_to_addr, i_to_sk, attacker_strategy)
-    print(t, n, m, attacker_level, elapsed, send_count, recv_count, sep=',')
+    print(t, n, m, attacker_level, elapsed, send_count, recv_count, model.sid_ctr, sep=',')
