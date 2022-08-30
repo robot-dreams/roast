@@ -54,8 +54,7 @@ class AttackerStrategy:
             raise ValueError('Unexpected AttackerLevel:', self.level)
 
 class Coordinator:
-    def __init__(self, model, actions, outgoing):
-        self.model = model
+    def __init__(self, actions, outgoing):
         self.actions = actions
         self.outgoing = outgoing
         self.connections = {}
@@ -101,7 +100,7 @@ class Coordinator:
         for i in self.connections.keys():
             Process(target=self.queue_incoming_loop, args=[self.connections[i], self.i_to_cached_ctx[i]], daemon=True).start()
 
-    def run(self, X, i_to_sk, attacker_strategy):
+    def run(self, i_to_sk, model, attacker_strategy):
         with self.run_id.get_lock():
             self.run_id.value += 1
 
@@ -110,7 +109,7 @@ class Coordinator:
 
         send_count += len(i_to_sk)
         for i, sk_i in i_to_sk.items():
-            self.outgoing.put((i, (X, i, sk_i)))
+            self.outgoing.put((i, (model.X, i, sk_i)))
 
         start = time.time()
 
@@ -127,16 +126,16 @@ class Coordinator:
                 if s_i is None:
                     logging.debug(f'Initial incoming message from participant {i}')
                 else:
-                    logging.debug(f'Incoming message from participant {i} in session {self.model.i_to_sid[i]}')
-                action_type, data = self.model.handle_incoming(i, s_i, pre_i, share_is_valid)
+                    logging.debug(f'Incoming message from participant {i} in session {model.i_to_sid[i]}')
+                action_type, data = model.handle_incoming(i, s_i, pre_i, share_is_valid)
                 self.queue_action(action_type, data)
 
             elif action_type == ActionType.SESSION_START:
                 send_count += len(data)
 
-                sid_ctr = self.model.sid_ctr
+                sid_ctr = model.sid_ctr
                 logging.debug(f'Enough participants are ready, starting new session with sid {sid_ctr}')
-                T = self.model.sid_to_T[sid_ctr]
+                T = model.sid_to_T[sid_ctr]
                 session_malicious = attacker_strategy.choose_malicious(T, sid_ctr)
 
                 for item in data:
@@ -180,13 +179,12 @@ if __name__ == '__main__':
     X = sk * fastec.G
     i_to_X = {i: sk_i * fastec.G for i, sk_i in i_to_sk.items()}
 
-    model = CoordinatorModel(X, i_to_X, t, n, msg)
     actions = Queue()
     outgoing = Queue()
-
-    coordinator = Coordinator(model, actions, outgoing)
+    coordinator = Coordinator(actions, outgoing)
     coordinator.setup(i_to_addr)
 
+    model = CoordinatorModel(X, i_to_X, t, n, msg)
     attacker_strategy = AttackerStrategy(attacker_level, n, m)
-    elapsed, send_count, recv_count = coordinator.run(X, i_to_sk, attacker_strategy)
+    elapsed, send_count, recv_count = coordinator.run(i_to_sk, model, attacker_strategy)
     print(t, n, m, attacker_level, elapsed, send_count, recv_count, model.sid_ctr, sep=',')
