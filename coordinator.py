@@ -125,9 +125,11 @@ class Coordinator:
             elif action_type == ActionType.SESSION_START:
                 send_count += len(data)
 
-                logging.debug(f'Enough participants are ready, starting new session with sid {self.model.sid_ctr}')
-                T = [i for _, i in data]
-                session_malicious = attacker_strategy.choose_malicious(T, self.model.sid_ctr)
+                sid_ctr = self.model.sid_ctr
+                logging.debug(f'Enough participants are ready, starting new session with sid {sid_ctr}')
+                T = self.model.sid_to_T[sid_ctr]
+                session_malicious = attacker_strategy.choose_malicious(T, sid_ctr)
+
                 for item in data:
                     ctx, i = item
                     self.i_to_cached_ctx[i].put(ctx)
