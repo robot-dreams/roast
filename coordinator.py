@@ -1,7 +1,6 @@
 from dataclasses import dataclass, field
-from multiprocessing import Queue
+from multiprocessing import Process, Queue
 from socket import socket, AF_INET, SOCK_STREAM, SOL_SOCKET, SO_REUSEADDR, IPPROTO_TCP, TCP_NODELAY
-from multiprocessing import Process
 from typing import Any
 from roast import share_val
 from enum import Enum
