@@ -4,6 +4,7 @@ from socket import socket, AF_INET, SOCK_STREAM, SOL_SOCKET, SO_REUSEADDR, IPPRO
 from multiprocessing import Process
 from typing import Any
 from roast import share_val
+from enum import Enum
 
 import logging
 import secrets
@@ -21,6 +22,37 @@ import fastec
 class PriorityAction:
     priority: int
     action: Any=field(compare=False)
+
+class AttackerLevel(Enum):
+    # Set of malicious participants determined in the beginning
+    STATIC = 0
+    # Same as STATIC but at most one participant behaves maliciously in a session
+    STATIC_COORDINATION = 1
+    # Exactly one malicious participant in the first m sessions
+    ADAPTIVE = 2
+
+def random_sample(items, k):
+    items = list(items)
+    secrets.SystemRandom().shuffle(items)
+    return items[:k]
+
+class AttackerStrategy:
+    def __init__(self, level, n, m):
+        self.level = level
+        self.n = n
+        self.m = m
+        self.static_attackers = random_sample(range(1, n + 1), m)
+
+    def choose_malicious(self, T, sid_ctr):
+        if self.level == AttackerLevel.STATIC:
+            return self.static_attackers[:]
+        elif self.level == AttackerLevel.STATIC_COORDINATION:
+            candidates = set(T).intersection(self.static_attackers)
+            return random_sample(candidates, 1)
+        elif self.level == AttackerLevel.ADAPTIVE:
+            return random_sample(T, sid_ctr <= self.m)
+        else:
+            raise ValueError('Unexpected AttackerLevel:', self.level)
 
 class Coordinator:
     def __init__(self, model, actions, outgoing):
@@ -52,7 +84,7 @@ class Coordinator:
             assert i in self.connections
             send_obj(self.connections[i], data)
 
-    def run(self, X, i_to_addr, i_to_sk, malicious):
+    def run(self, X, i_to_addr, i_to_sk, attacker_strategy):
         for i, addr_i in i_to_addr.items():
             self.connections[i] = socket(AF_INET, SOCK_STREAM)
             self.connections[i].setsockopt(SOL_SOCKET, SO_REUSEADDR, True)
@@ -65,7 +97,7 @@ class Coordinator:
 
         send_count += len(i_to_sk)
         for i, sk_i in i_to_sk.items():
-            send_obj(self.connections[i], (X, i, sk_i, i in malicious))
+            send_obj(self.connections[i], (X, i, sk_i))
 
         Process(target=self.send_outgoing, daemon=True).start()
         for i in self.connections.keys():
@@ -93,11 +125,15 @@ class Coordinator:
             elif action_type == ActionType.SESSION_START:
                 send_count += len(data)
 
-                logging.debug(f'Enough participants are ready, starting new session with sid {self.model.sid_ctr}')
+                sid_ctr = self.model.sid_ctr
+                logging.debug(f'Enough participants are ready, starting new session with sid {sid_ctr}')
+                T = self.model.sid_to_T[sid_ctr]
+                session_malicious = attacker_strategy.choose_malicious(T, sid_ctr)
+
                 for item in data:
                     ctx, i = item
                     self.i_to_cached_ctx[i].put(ctx)
-                    self.outgoing.put((i, (ctx.msg, ctx.T, ctx.pre)))
+                    self.outgoing.put((i, (ctx.msg, ctx.T, ctx.pre, i in session_malicious)))
 
             elif action_type == ActionType.SESSION_SUCCESS:
                 ctx, sig = data
@@ -111,8 +147,8 @@ class Coordinator:
 if __name__ == '__main__':
     logging.basicConfig(level=logging.INFO)
 
-    if len(sys.argv) != 6:
-        print(f'usage: {sys.argv[0]} <host> <start_port> <threshold> <total> <malicious>')
+    if len(sys.argv) != 7:
+        print(f'usage: {sys.argv[0]} <host> <start_port> <threshold> <total> <malicious> <attacker_level>')
         sys.exit(1)
 
     host = sys.argv[1]
@@ -120,8 +156,7 @@ if __name__ == '__main__':
     t = int(sys.argv[3])
     n = int(sys.argv[4])
     m = int(sys.argv[5])
-
-    malicious = secrets.SystemRandom().choices(population=range(1, n + 1), k=m)
+    attacker_level = AttackerLevel(int(sys.argv[6]))
 
     msg = b""
     i_to_addr = {i + 1: (host, start_port + i) for i in range(n)}
@@ -141,5 +176,6 @@ if __name__ == '__main__':
     outgoing = Queue()
 
     coordinator = Coordinator(model, actions, outgoing)
-    elapsed, send_count, recv_count = coordinator.run(X, i_to_addr, i_to_sk, malicious)
-    print(t, n, m, elapsed, send_count, recv_count, sep=',')
+    attacker_strategy = AttackerStrategy(attacker_level, n, m)
+    elapsed, send_count, recv_count = coordinator.run(X, i_to_addr, i_to_sk, attacker_strategy)
+    print(t, n, m, attacker_level, elapsed, send_count, recv_count, sep=',')
