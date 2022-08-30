@@ -89,7 +89,7 @@ class Coordinator:
             with self.run_id.get_lock():
                 send_obj(self.connections[i], (self.run_id.value, data))
 
-    def run(self, X, i_to_addr, i_to_sk, attacker_strategy):
+    def setup(self, i_to_addr):
         for i, addr_i in i_to_addr.items():
             self.connections[i] = socket(AF_INET, SOCK_STREAM)
             self.connections[i].setsockopt(SOL_SOCKET, SO_REUSEADDR, True)
@@ -100,6 +100,10 @@ class Coordinator:
         Process(target=self.send_outgoing_loop, daemon=True).start()
         for i in self.connections.keys():
             Process(target=self.queue_incoming_loop, args=[self.connections[i], self.i_to_cached_ctx[i]], daemon=True).start()
+
+    def run(self, X, i_to_sk, attacker_strategy):
+        with self.run_id.get_lock():
+            self.run_id.value += 1
 
         send_count = 0
         recv_count = 0
@@ -181,6 +185,8 @@ if __name__ == '__main__':
     outgoing = Queue()
 
     coordinator = Coordinator(model, actions, outgoing)
+    coordinator.setup(i_to_addr)
+
     attacker_strategy = AttackerStrategy(attacker_level, n, m)
-    elapsed, send_count, recv_count = coordinator.run(X, i_to_addr, i_to_sk, attacker_strategy)
+    elapsed, send_count, recv_count = coordinator.run(X, i_to_sk, attacker_strategy)
     print(t, n, m, attacker_level, elapsed, send_count, recv_count, model.sid_ctr, sep=',')
