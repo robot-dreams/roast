@@ -64,7 +64,7 @@ class Coordinator:
     def queue_action(self, action_type, data):
         self.actions.put(PriorityAction(action_type.value, (action_type, data)))
 
-    def queue_incoming(self, sock, cached_ctx_queue):
+    def queue_incoming_loop(self, sock, cached_ctx_queue):
         while True:
             data = recv_obj(sock)
             if not data:
@@ -77,7 +77,7 @@ class Coordinator:
             data = i, s_i, pre_i, share_is_valid
             self.queue_action(ActionType.INCOMING, data)
 
-    def send_outgoing(self):
+    def send_outgoing_loop(self):
         while True:
             i, data = self.outgoing.get()
             assert i in self.connections
@@ -98,9 +98,9 @@ class Coordinator:
         for i, sk_i in i_to_sk.items():
             send_obj(self.connections[i], (X, i, sk_i))
 
-        Process(target=self.send_outgoing, daemon=True).start()
+        Process(target=self.send_outgoing_loop, daemon=True).start()
         for i in self.connections.keys():
-            Process(target=self.queue_incoming, args=[self.connections[i], self.i_to_cached_ctx[i]], daemon=True).start()
+            Process(target=self.queue_incoming_loop, args=[self.connections[i], self.i_to_cached_ctx[i]], daemon=True).start()
 
         start = time.time()
 
