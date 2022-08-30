@@ -1,5 +1,5 @@
 from dataclasses import dataclass, field
-from multiprocessing import Process, Queue
+from multiprocessing import Process, Queue, Value
 from socket import socket, AF_INET, SOCK_STREAM, SOL_SOCKET, SO_REUSEADDR, IPPROTO_TCP, TCP_NODELAY
 from typing import Any
 from roast import share_val
@@ -60,16 +60,21 @@ class Coordinator:
         self.outgoing = outgoing
         self.connections = {}
         self.i_to_cached_ctx = {i + 1: Queue() for i in range(n)}
+        self.run_id = Value('i', 0)
 
     def queue_action(self, action_type, data):
         self.actions.put(PriorityAction(action_type.value, (action_type, data)))
 
     def queue_incoming_loop(self, sock, cached_ctx_queue):
         while True:
-            data = recv_obj(sock)
-            if not data:
+            obj = recv_obj(sock)
+            if not obj:
                 break
-            i, s_i, pre_i = data
+            run_id, (i, s_i, pre_i) = obj
+            # Ignore incoming messages from wrong run_id
+            with self.run_id.get_lock():
+                if run_id != self.run_id.value:
+                    return
             share_is_valid = False
             if s_i is not None:
                 ctx = cached_ctx_queue.get()
@@ -81,7 +86,8 @@ class Coordinator:
         while True:
             i, data = self.outgoing.get()
             assert i in self.connections
-            send_obj(self.connections[i], data)
+            with self.run_id.get_lock():
+                send_obj(self.connections[i], (self.run_id.value, data))
 
     def run(self, X, i_to_addr, i_to_sk, attacker_strategy):
         for i, addr_i in i_to_addr.items():
@@ -96,7 +102,8 @@ class Coordinator:
 
         send_count += len(i_to_sk)
         for i, sk_i in i_to_sk.items():
-            send_obj(self.connections[i], (X, i, sk_i))
+            with self.run_id.get_lock():
+                send_obj(self.connections[i], (self.run_id, (X, i, sk_i)))
 
         Process(target=self.send_outgoing_loop, daemon=True).start()
         for i in self.connections.keys():

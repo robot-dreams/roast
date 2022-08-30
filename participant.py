@@ -24,12 +24,7 @@ class Participant:
         return s_i, self.pre_i
 
 def handle_requests(connection, nonce_queue):
-    X, i, sk_i = recv_obj(connection)
-    logging.debug(f'Participant {i}: Received initialization data')
-
-    participant = Participant(X, i, sk_i, nonce_queue)
-    send_obj(connection, (i, None, participant.pre_i))
-    logging.debug(f'Participant {i}: Sent initial pre_i value')
+    curr_run_id = -1
 
     while True:
         obj = recv_obj(connection)
@@ -37,15 +32,25 @@ def handle_requests(connection, nonce_queue):
             logging.debug('Connection closed')
             break
 
-        msg, T, pre, is_malicious = obj
-
-        logging.info(f'Participant {i}: Received sign_round request, is_malicious = {is_malicious}')
-        if not is_malicious:
-            start = time.time()
-            s_i, pre_i = participant.sign_round(msg, T, pre)
-            elapsed = time.time() - start
-            send_obj(connection, (i, s_i, pre_i))
-            logging.info(f'Participant {i}: Sent sign_round response and next pre_i value in {elapsed:.4f} seconds')
+        run_id, data = obj
+        if run_id < curr_run_id:
+            logging.debug(f'Participant {i}: Ignoring incoming message from outdated run (run_id = {run_id}, curr_run_id = {curr_run_id})')
+        elif run_id > curr_run_id:
+            curr_run_id = run_id
+            X, i, sk_i = data
+            logging.debug(f'Participant {i}: Received initialization data for new run (run_id = {run_id}, curr_run_id = {curr_run_id})')
+            participant = Participant(X, i, sk_i, nonce_queue)
+            send_obj(connection, (run_id, (i, None, participant.pre_i)))
+            logging.debug(f'Participant {i}: Sent initial pre_i value')
+        else:
+            msg, T, pre, is_malicious = data
+            logging.info(f'Participant {i}: Received sign_round request, run_id = {run_id}, is_malicious = {is_malicious}')
+            if not is_malicious:
+                start = time.time()
+                s_i, pre_i = participant.sign_round(msg, T, pre)
+                elapsed = time.time() - start
+                send_obj(connection, (run_id, (i, s_i, pre_i)))
+                logging.info(f'Participant {i}: Sent sign_round response and next pre_i value in {elapsed:.4f} seconds')
 
 def compute_nonce_loop(nonce_queue):
     while True:
