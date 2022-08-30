@@ -97,17 +97,16 @@ class Coordinator:
             self.connections[i].connect(addr_i)
             logging.debug(f'Established connection to participant {i} at {addr_i}')
 
+        Process(target=self.send_outgoing_loop, daemon=True).start()
+        for i in self.connections.keys():
+            Process(target=self.queue_incoming_loop, args=[self.connections[i], self.i_to_cached_ctx[i]], daemon=True).start()
+
         send_count = 0
         recv_count = 0
 
         send_count += len(i_to_sk)
         for i, sk_i in i_to_sk.items():
-            with self.run_id.get_lock():
-                send_obj(self.connections[i], (self.run_id, (X, i, sk_i)))
-
-        Process(target=self.send_outgoing_loop, daemon=True).start()
-        for i in self.connections.keys():
-            Process(target=self.queue_incoming_loop, args=[self.connections[i], self.i_to_cached_ctx[i]], daemon=True).start()
+            self.outgoing.put((i, (X, i, sk_i)))
 
         start = time.time()
 
