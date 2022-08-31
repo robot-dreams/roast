@@ -8,6 +8,16 @@ The implementation here is intended only as a proof of concept, and for measurin
 
 We currently use the [`fastecdsa` library](https://github.com/AntonKueltz/fastecdsa) for elliptic curve operations, but a more optimized implementation should use the [`secp256k1` library](https://github.com/bitcoin-core/secp256k1) instead.
 
+## Installing
+
+Assuming `git` and `python3` are already installed:
+
+```
+sudo apt-get update
+sudo apt install python3-pip libgmp-dev
+pip3 install -r requirements.txt
+```
+
 ## Running
 
 The following example shows:
