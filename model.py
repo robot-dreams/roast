@@ -58,7 +58,7 @@ class CoordinatorModel:
 
             if len(self.sid_to_i_to_s[sid]) == self.t:
                 sig = sign_agg(ctx, self.sid_to_i_to_s[sid])
-                return (ActionType.SESSION_SUCCESS, (ctx, sig))
+                return (ActionType.SESSION_SUCCESS, (ctx, sig, sid))
 
         self.i_to_pre[i] = pre_i
         self.ready.add(i)

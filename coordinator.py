@@ -151,10 +151,10 @@ class Coordinator:
                     self.outgoing.put((i, run_id, (ctx.msg, ctx.T, ctx.pre, i in session_malicious)))
 
             elif action_type == ActionType.SESSION_SUCCESS:
-                ctx, sig = data
+                ctx, sig, sid = data
                 end = time.time()
                 assert verify(ctx, sig)
-                return end - start, send_count, recv_count
+                return end - start, send_count, recv_count, sid
 
             else:
                 raise Exception('Unknown ActionType', action_type)
@@ -196,5 +196,5 @@ if __name__ == '__main__':
     for _ in range(runs):
         model = CoordinatorModel(X, i_to_X, t, n, msg)
         attacker_strategy = AttackerStrategy(attacker_level, n, m)
-        elapsed, send_count, recv_count = coordinator.run(i_to_sk, model, attacker_strategy)
-        print(t, n, m, attacker_level, elapsed, send_count, recv_count, model.sid_ctr, sep=',')
+        elapsed, send_count, recv_count, sid = coordinator.run(i_to_sk, model, attacker_strategy)
+        print(t, n, m, attacker_level, elapsed, send_count, recv_count, sid, sep=',')
