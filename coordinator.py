@@ -86,10 +86,13 @@ class Coordinator:
 
     def send_outgoing_loop(self):
         while True:
-            i, data = self.outgoing.get()
+            i, run_id, data = self.outgoing.get()
             assert i in self.connections
             with self.run_id.get_lock():
-                send_obj(self.connections[i], (self.run_id.value, data))
+                if run_id != self.run_id.value:
+                    logging.debug(f'Ignoring outgoing message from previous run (message run_id = {run_id}, my run_id = {self.run_id.value})')
+                    continue
+            send_obj(self.connections[i], (run_id, data))
 
     def setup(self, i_to_addr):
         for i, addr_i in i_to_addr.items():
@@ -106,13 +109,14 @@ class Coordinator:
     def run(self, i_to_sk, model, attacker_strategy):
         with self.run_id.get_lock():
             self.run_id.value += 1
+            run_id = self.run_id.value
 
         send_count = 0
         recv_count = 0
 
         send_count += len(i_to_sk)
         for i, sk_i in i_to_sk.items():
-            self.outgoing.put((i, (model.X, i, sk_i)))
+            self.outgoing.put((i, run_id, (model.X, i, sk_i)))
 
         start = time.time()
 
@@ -141,12 +145,10 @@ class Coordinator:
                 T = model.sid_to_T[sid_ctr]
                 session_malicious = attacker_strategy.choose_malicious(T, sid_ctr)
 
-                with self.run_id.get_lock():
-                    run_id = self.run_id.value
                 for item in data:
                     ctx, i = item
                     self.i_to_cached_ctx[i].put((run_id, ctx))
-                    self.outgoing.put((i, (ctx.msg, ctx.T, ctx.pre, i in session_malicious)))
+                    self.outgoing.put((i, run_id, (ctx.msg, ctx.T, ctx.pre, i in session_malicious)))
 
             elif action_type == ActionType.SESSION_SUCCESS:
                 ctx, sig = data
