@@ -73,10 +73,14 @@ class Coordinator:
             # Ignore incoming messages from wrong run_id
             with self.run_id.get_lock():
                 if run_id != self.run_id.value:
-                    return
+                    logging.debug(f'Ignoring incoming message from previous run (message run_id = {run_id}, my run_id = {self.run_id.value})')
+                    continue
             share_is_valid = False
             if s_i is not None:
-                ctx = cached_ctx_queue.get()
+                ctx_run_id, ctx = cached_ctx_queue.get()
+                # Discard queue items from previous runs
+                while ctx_run_id != run_id:
+                    ctx_run_id, ctx = cached_ctx_queue.get()
                 share_is_valid = share_val(ctx, i, s_i)
             data = i, s_i, pre_i, share_is_valid
             self.queue_action(ActionType.INCOMING, data)
@@ -138,9 +142,11 @@ class Coordinator:
                 T = model.sid_to_T[sid_ctr]
                 session_malicious = attacker_strategy.choose_malicious(T, sid_ctr)
 
+                with self.run_id.get_lock():
+                    run_id = self.run_id.value
                 for item in data:
                     ctx, i = item
-                    self.i_to_cached_ctx[i].put(ctx)
+                    self.i_to_cached_ctx[i].put((run_id, ctx))
                     self.outgoing.put((i, (ctx.msg, ctx.T, ctx.pre, i in session_malicious)))
 
             elif action_type == ActionType.SESSION_SUCCESS:
@@ -155,8 +161,8 @@ class Coordinator:
 if __name__ == '__main__':
     logging.basicConfig(level=logging.INFO)
 
-    if len(sys.argv) != 7:
-        print(f'usage: {sys.argv[0]} <host> <start_port> <threshold> <total> <malicious> <attacker_level>')
+    if len(sys.argv) != 8:
+        print(f'usage: {sys.argv[0]} <host> <start_port> <threshold> <total> <malicious> <attacker_level> <runs>')
         sys.exit(1)
 
     host = sys.argv[1]
@@ -165,6 +171,7 @@ if __name__ == '__main__':
     n = int(sys.argv[4])
     m = int(sys.argv[5])
     attacker_level = AttackerLevel(int(sys.argv[6]))
+    runs = int(sys.argv[7])
 
     msg = b""
     i_to_addr = {i + 1: (host, start_port + i) for i in range(n)}
@@ -184,7 +191,8 @@ if __name__ == '__main__':
     coordinator = Coordinator(actions, outgoing)
     coordinator.setup(i_to_addr)
 
-    model = CoordinatorModel(X, i_to_X, t, n, msg)
-    attacker_strategy = AttackerStrategy(attacker_level, n, m)
-    elapsed, send_count, recv_count = coordinator.run(i_to_sk, model, attacker_strategy)
-    print(t, n, m, attacker_level, elapsed, send_count, recv_count, model.sid_ctr, sep=',')
+    for _ in range(runs):
+        model = CoordinatorModel(X, i_to_X, t, n, msg)
+        attacker_strategy = AttackerStrategy(attacker_level, n, m)
+        elapsed, send_count, recv_count = coordinator.run(i_to_sk, model, attacker_strategy)
+        print(t, n, m, attacker_level, elapsed, send_count, recv_count, model.sid_ctr, sep=',')
