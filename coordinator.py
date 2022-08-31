@@ -2,7 +2,6 @@ from dataclasses import dataclass, field
 from multiprocessing import Process, Queue, Value
 from socket import socket, AF_INET, SOCK_STREAM, SOL_SOCKET, SO_REUSEADDR, IPPROTO_TCP, TCP_NODELAY
 from typing import Any
-from roast import share_val
 from enum import Enum
 
 import logging
@@ -12,7 +11,7 @@ import time
 
 from shamir import split_secret
 from model import ActionType, CoordinatorModel
-from roast import verify
+from roast import share_val, verify
 from transport import send_obj, recv_obj
 
 import fastec
@@ -54,11 +53,11 @@ class AttackerStrategy:
             raise ValueError('Unexpected AttackerLevel:', self.level)
 
 class Coordinator:
-    def __init__(self, actions, outgoing):
+    def __init__(self, actions, outgoing, i_to_cached_ctx):
         self.actions = actions
         self.outgoing = outgoing
+        self.i_to_cached_ctx = i_to_cached_ctx
         self.connections = {}
-        self.i_to_cached_ctx = {i + 1: Queue() for i in range(n)}
         self.run_id = Value('i', 0)
 
     def queue_action(self, action_type, data):
@@ -185,10 +184,11 @@ if __name__ == '__main__':
 
     X = sk * fastec.G
     i_to_X = {i: sk_i * fastec.G for i, sk_i in i_to_sk.items()}
+    i_to_cached_ctx = {i + 1: Queue() for i in range(n)}
 
     actions = Queue()
     outgoing = Queue()
-    coordinator = Coordinator(actions, outgoing)
+    coordinator = Coordinator(actions, outgoing, i_to_cached_ctx)
     coordinator.setup(i_to_addr)
 
     for _ in range(runs):
