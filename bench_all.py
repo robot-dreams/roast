@@ -26,7 +26,6 @@ if __name__ == '__main__':
     msg = b""
     i_to_addr = {i + 1: (host, start_port + i) for i in range(n)}
     i_to_cached_ctx = {i + 1: Queue() for i in range(n)}
-    print(i_to_addr)
 
     actions = Queue()
     outgoing = Queue()
