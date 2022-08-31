@@ -36,9 +36,9 @@ def handle_requests(connection, nonce_queue):
         if run_id < curr_run_id:
             logging.debug(f'Participant {i}: Ignoring incoming message from outdated run (run_id = {run_id}, curr_run_id = {curr_run_id})')
         elif run_id > curr_run_id:
-            curr_run_id = run_id
             X, i, sk_i = data
             logging.debug(f'Participant {i}: Received initialization data for new run (run_id = {run_id}, curr_run_id = {curr_run_id})')
+            curr_run_id = run_id
             participant = Participant(X, i, sk_i, nonce_queue)
             send_obj(connection, (run_id, (i, None, participant.pre_i)))
             logging.debug(f'Participant {i}: Sent initial pre_i value')
