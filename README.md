@@ -8,6 +8,16 @@ The implementation here is intended only as a proof of concept, and for measurin
 
 We currently use the [`fastecdsa` library](https://github.com/AntonKueltz/fastecdsa) for elliptic curve operations, but a more optimized implementation should use the [`secp256k1` library](https://github.com/bitcoin-core/secp256k1) instead.
 
+## Installing
+
+Assuming `git` and `python3` are already installed:
+
+```
+sudo apt-get update
+sudo apt install python3-pip libgmp-dev
+pip3 install -r requirements.txt
+```
+
 ## Running
 
 The following example shows:
@@ -17,22 +27,21 @@ The following example shows:
 * `total = 5`
 * `malicious = 2`
 * `attacker_level = 0` (higher values give more sophisticated strategies)
+* `runs = 10` (there will be 10 separate runs, and each run will include 1 or more sessions)
 
 1. First launch all the participants:
 
 ```shell
-% for i in `seq 12001 12005`; do python3 participant.py $i 64 & done
+% for i in `seq 12001 12005`; do python3 participant.py $i & done
 ```
-
-The `num_precomputed_nonces` value of `64` indicates how many nonces to precompute before listening for connections.
 
 2. Next, run the coordinator:
 
 ```shell
-% python3 coordinator.py localhost 12001 3 5 2 0
+% python3 coordinator.py localhost 12001 3 5 2 0 10
 ```
 
-Replace `localhost` with the correct host if you're not running the participants on the same machine as the coordinator. Note that it's possible to run the coordinator multiple times without relaunching all the participants, as long as the participants haven't run out of precomputed nonces.
+Replace `localhost` with the correct host if you're not running the participants on the same machine as the coordinator. Use `bench_all.py` instead of `coordinator.py` if you'd like to run through all possible attacker strategies for given values of `t`, `n`.
 
 ## Protocol
 
