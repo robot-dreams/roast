@@ -32,6 +32,7 @@ if __name__ == '__main__':
     outgoing = Queue()
     coordinator = Coordinator(actions, outgoing, i_to_cached_ctx)
     coordinator.setup(i_to_addr)
+    print(f'Finished establishing connections to {N_MAX} participants')
 
     for t, n in T_N_PAIRS:
         # This is insecure; in practice we'd use DKG, but since
@@ -43,12 +44,15 @@ if __name__ == '__main__':
 
         X = sk * fastec.G
         i_to_X = {i: sk_i * fastec.G for i, sk_i in i_to_sk.items()}
+        print(f'Finished keygen for t = {t}, n = {n}')
 
         with open(f'roast_{t}_{n}.csv', 'w') as outfile:
+            print("t,n,f,attacker_level,elapsed,send_cnt,recv_cnt,sessions_started", file=outfile)
             for f in range(n - t + 1):
                 for attacker_level in AttackerLevel:
-                    for _ in range(runs_per_config):
+                    for i in range(runs_per_config):
                         model = CoordinatorModel(X, i_to_X, t, n, msg)
                         attacker_strategy = AttackerStrategy(attacker_level, n, f)
                         elapsed, send_count, recv_count = coordinator.run(i_to_sk, model, attacker_strategy)
                         print(t, n, f, attacker_level, elapsed, send_count, recv_count, model.sid_ctr, sep=',', file=outfile)
+                        print(f'Finished run {i + 1} of {runs_per_config} for config: (t = {t}, n = {n}, f = {f}, attacker_level = {attacker_level})')
