@@ -29,27 +29,23 @@ rtt min/avg/max/mdev = 152.794/152.985/154.218/0.339 ms
 The `summarize.py` script summarizes the raw data into a format that can directly be read by a LaTeX `tikzpicture` plot. For example:
 
 ```latex
-\begin{figure}
 \begin{tikzpicture}
 	\begin{axis}[
-    legend style={
-      at={(0.985,0.065)},
-      anchor={south east},
-      font=\small,
-      inner sep=2pt,
-    },
-    legend cell align=left,
+		legend style={
+			at={(0.985,0.065)},
+			anchor={south east},
+			font=\small,
+			inner sep=2pt,
+		},
+		legend cell align=left,
 		xlabel=Fraction $f/(n - t)$ of malicious signers,
 		ylabel={Average running time [s]},
-    xmin=0,
-    xmax=1,
-    xtick={0, 0.25, ..., 1},
-    xticklabels={0, 1/4, 1/2, 3/4, 1},
-    ymin=0,
-    width=\columnwidth,
-    % fine tune this for nice appearance on the last page:
-    height=215pt,
-  ]
+		xmin=0,
+		xmax=1,
+		xtick={0, 0.25, ..., 1},
+		xticklabels={0, 1/4, 1/2, 3/4, 1},
+		ymin=0,
+	]
 	\addplot[color=blue,mark=x] table {benchmark/benchmark-adaptive-67-100.dat};
 	\addplot[color=brown,mark=triangle] table {benchmark/benchmark-adaptive-34-50.dat};
 	\addplot[color=red,mark=diamond] table {benchmark/benchmark-adaptive-11-15.dat};
@@ -58,8 +54,4 @@ The `summarize.py` script summarizes the raw data into a format that can directl
 	\legend{67-of-100$\!$,34-of-50,11-of-15,3-of-5,RTT}
 	\end{axis}
 \end{tikzpicture}
-\caption{\label{fig:exec-time}%
-	Running time of \roast.
-}
-\end{figure}
 ```
