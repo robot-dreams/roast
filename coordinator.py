@@ -69,11 +69,6 @@ class Coordinator:
             if not obj:
                 break
             run_id, (i, s_i, pre_i) = obj
-            # Ignore incoming messages from wrong run_id
-            with self.run_id.get_lock():
-                if run_id != self.run_id.value:
-                    logging.debug(f'Ignoring incoming message from previous run (message run_id = {run_id}, my run_id = {self.run_id.value})')
-                    continue
             share_is_valid = False
             if s_i is not None:
                 ctx_run_id, ctx = cached_ctx_queue.get()
@@ -81,7 +76,7 @@ class Coordinator:
                 while ctx_run_id != run_id:
                     ctx_run_id, ctx = cached_ctx_queue.get()
                 share_is_valid = share_val(ctx, i, s_i)
-            data = i, s_i, pre_i, share_is_valid
+            data = run_id, i, s_i, pre_i, share_is_valid
             self.queue_action(ActionType.INCOMING, data)
 
     def send_outgoing_loop(self):
@@ -129,7 +124,12 @@ class Coordinator:
             elif action_type == ActionType.INCOMING:
                 recv_count += 1
 
-                i, s_i, pre_i, share_is_valid = data
+                run_id, i, s_i, pre_i, share_is_valid = data
+                # Ignore incoming messages from wrong run_id
+                with self.run_id.get_lock():
+                    if run_id != self.run_id.value:
+                        logging.debug(f'Ignoring incoming message from previous run (message run_id = {run_id}, my run_id = {self.run_id.value})')
+                        continue
                 if s_i is None:
                     logging.debug(f'Initial incoming message from participant {i}')
                 else:
