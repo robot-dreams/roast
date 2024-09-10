@@ -83,5 +83,5 @@ if __name__ == '__main__':
 
         try:
             handle_requests(connection, nonce_queue)
-        except ConnectionResetError as e:
-            print(e)
+        except ConnectionResetError:
+            logging.info('Participant: Connection reset by coordinator (which most likely has terminated).')

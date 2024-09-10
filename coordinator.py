@@ -126,12 +126,14 @@ class Coordinator:
             elif action_type == ActionType.INCOMING:
                 recv_count += 1
 
-                run_id, i, s_i, pre_i, share_is_valid = data
+                msg_run_id, i, s_i, pre_i, share_is_valid = data
                 # Ignore incoming messages from wrong run_id
-                with self.run_id.get_lock():
-                    if run_id != self.run_id.value:
-                        logging.debug(f'Ignoring incoming message from previous run (message run_id = {run_id}, my run_id = {self.run_id.value})')
-                        continue
+                if msg_run_id < run_id:
+                    logging.debug(f'Ignoring incoming message from previous run (message run_id = {msg_run_id}, my run_id = {run_id})')
+                    continue
+                if msg_run_id > run_id:
+                    logging.info(f'Ignoring incoming message from future run; this should not happen (message run_id = {msg_run_id}, my run_id = {run_id})')
+                    continue
                 if s_i is None:
                     logging.debug(f'Initial incoming message from participant {i}')
                 else:
