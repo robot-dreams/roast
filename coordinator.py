@@ -84,7 +84,9 @@ class Coordinator:
             i, run_id, data = self.outgoing.get()
             assert i in self.connections
             with self.run_id.get_lock():
-                if run_id != self.run_id.value:
+                if run_id < self.run_id.value:
+                    # The main thread is at least in run self.run_id.value,
+                    # so it's safe to drop messages from earlier runs.
                     logging.debug(f'Ignoring outgoing message from previous run (message run_id = {run_id}, my run_id = {self.run_id.value})')
                     continue
             send_obj(self.connections[i], (run_id, data))
